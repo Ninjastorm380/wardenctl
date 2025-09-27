@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "dgSpecHash": "6cUaOH4m/yw=",
+  "success": true,
+  "projectFilePath": "/home/prydaran/Documents/Rider/wardencontrol/wardenctl/wardenctl.csproj",
+  "expectedPackageFiles": [
+    "/home/prydaran/.nuget/packages/ini-parser-new/2.6.2/ini-parser-new.2.6.2.nupkg.sha512",
+    "/home/prydaran/.nuget/packages/microsoft.dotnet.ilcompiler/9.0.9/microsoft.dotnet.ilcompiler.9.0.9.nupkg.sha512",
+    "/home/prydaran/.nuget/packages/microsoft.net.illink.tasks/9.0.9/microsoft.net.illink.tasks.9.0.9.nupkg.sha512",
+    "/home/prydaran/.nuget/packages/runtime.linux-x64.microsoft.dotnet.ilcompiler/9.0.9/runtime.linux-x64.microsoft.dotnet.ilcompiler.9.0.9.nupkg.sha512",
+    "/home/prydaran/.nuget/packages/microsoft.netcore.app.runtime.linux-x64/9.0.9/microsoft.netcore.app.runtime.linux-x64.9.0.9.nupkg.sha512",
+    "/home/prydaran/.nuget/packages/microsoft.aspnetcore.app.runtime.linux-x64/9.0.9/microsoft.aspnetcore.app.runtime.linux-x64.9.0.9.nupkg.sha512",
+    "/home/prydaran/.nuget/packages/microsoft.netcore.app.crossgen2.linux-x64/9.0.9/microsoft.netcore.app.crossgen2.linux-x64.9.0.9.nupkg.sha512",
+    "/home/prydaran/.nuget/packages/runtime.linux-x64.microsoft.dotnet.ilcompiler/9.0.9/runtime.linux-x64.microsoft.dotnet.ilcompiler.9.0.9.nupkg.sha512",
+    "/home/prydaran/.nuget/packages/microsoft.netcore.app.host.linux-x64/9.0.9/microsoft.netcore.app.host.linux-x64.9.0.9.nupkg.sha512"
+  ],
+  "logs": []
+}

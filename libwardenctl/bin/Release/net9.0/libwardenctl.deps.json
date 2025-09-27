@@ -1,0 +1,50 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v9.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v9.0": {
+      "libwardenctl/1.0.0": {
+        "dependencies": {
+          "Microsoft.NET.ILLink.Tasks": "9.0.9",
+          "ini-parser-new": "2.6.2"
+        },
+        "runtime": {
+          "libwardenctl.dll": {}
+        }
+      },
+      "ini-parser-new/2.6.2": {
+        "runtime": {
+          "lib/netstandard2.0/IniParser.dll": {
+            "assemblyVersion": "2.6.2.0",
+            "fileVersion": "2.6.2.0"
+          }
+        }
+      },
+      "Microsoft.NET.ILLink.Tasks/9.0.9": {}
+    }
+  },
+  "libraries": {
+    "libwardenctl/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "ini-parser-new/2.6.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-NJhZKhxrWsO2h+WeDFZ8fFMRqL9N63qevKtvfmHvwxx8GzI1E/Mnk1dX0BlhyiDms5GTHl7Tb0cHwlXMjsZzSA==",
+      "path": "ini-parser-new/2.6.2",
+      "hashPath": "ini-parser-new.2.6.2.nupkg.sha512"
+    },
+    "Microsoft.NET.ILLink.Tasks/9.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-cHi1os/s6aobEgNkbOh/jW+ru//rHuedvj4PmTh2mMY7et/mJjqphBeXeKCesDvMd0+E2JyX9EPZZC4VRKslXg==",
+      "path": "microsoft.net.illink.tasks/9.0.9",
+      "hashPath": "microsoft.net.illink.tasks.9.0.9.nupkg.sha512"
+    }
+  }
+}
