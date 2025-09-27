@@ -100,6 +100,7 @@ internal partial class Surface<T> : IDisposable, IEquatable<T> where T : IParsab
     }
 
     public void Dispose () {
+        BaseWatcher.EnableRaisingEvents = false;
         BaseWatcher.Dispose();
     }
     

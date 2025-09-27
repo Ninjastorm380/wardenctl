@@ -170,7 +170,7 @@ public class ContainerControlHelper {
         }
         
         Log.PrintAsync<ContainerControlHelper>($"Mounting rampartfs container filesystem at '{MountPath}' with initial capacity '{Capacity}'", LogLevel.Debug);
-        ExternalProcessHelper.Block("rampartfs", $"{StoragePath} {ControlPath} {LogPath} {MountPath} {Capacity}");
+        ExternalProcessHelper.Silent("rampartfs", $"{StoragePath} {ControlPath} {LogPath} {MountPath} {Capacity}");
         Log.PrintAsync<ContainerControlHelper>($"Waiting for rampartfs container filesystem to exist at '{MountPath}'", LogLevel.Debug);
         while (File.ReadAllText(MountsFile).Trim().Contains(MountPath) == false) {
             Thread.Sleep(100);
@@ -193,8 +193,9 @@ public class ContainerControlHelper {
         String MountsFile = "/proc/mounts";
         String MountedStatusFile = $"{ControlPath}{Path.DirectorySeparatorChar}mounted";
         
+        Log.PrintAsync<ContainerControlHelper>($"Unmounting rampartfs container filesystem at '{MountPath}'", LogLevel.Debug);
         while (File.ReadAllText(MountsFile).Trim().Contains(MountPath) == true) {
-            ExternalProcessHelper.Silent("umount", $"-l {MountPath}");
+            ExternalProcessHelper.Silent("umount", $" {MountPath}");
         }
         
         if (File.Exists(MountedStatusFile) == true) {
@@ -203,8 +204,9 @@ public class ContainerControlHelper {
             }
         }
         
+        Log.PrintAsync<ContainerControlHelper>($"Unmounting tmpfs control filesystem at '{ControlPath}'", LogLevel.Debug);
         while (File.ReadAllText(MountsFile).Trim().Contains(ControlPath) == true) {
-            ExternalProcessHelper.Silent("umount", $"-l {ControlPath}");
+            ExternalProcessHelper.Silent("umount", $" {ControlPath}");
         }
         
         return 0;
