@@ -9,7 +9,6 @@ internal static class Program {
     private static extern UInt32 GetEUID();
      
     static void Main(String[] Args) {
-        
         if (GetEUID() != 0) {
             Console.WriteLine("You must be superuser to run this program.");
 
