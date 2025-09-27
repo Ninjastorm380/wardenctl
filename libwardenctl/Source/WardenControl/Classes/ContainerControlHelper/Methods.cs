@@ -170,15 +170,15 @@ public class ContainerControlHelper {
         }
         
         Log.PrintAsync<ContainerControlHelper>($"Mounting rampartfs container filesystem at '{MountPath}' with initial capacity '{Capacity}'", LogLevel.Debug);
-        ExternalProcessHelper.Silent("rampartfs", $"{StoragePath} {ControlPath} {LogPath} {MountPath} {Capacity}");
-        Log.PrintAsync<ContainerControlHelper>($"Waiting for rampartfs container filesystem to exist at '{ControlPath}'", LogLevel.Debug);
+        ExternalProcessHelper.Block("rampartfs", $"{StoragePath} {ControlPath} {LogPath} {MountPath} {Capacity}");
+        Log.PrintAsync<ContainerControlHelper>($"Waiting for rampartfs container filesystem to exist at '{MountPath}'", LogLevel.Debug);
         while (File.ReadAllText(MountsFile).Trim().Contains(MountPath) == false) {
             Thread.Sleep(100);
         }
         
         String Flag = $"{ControlPath}{Path.DirectorySeparatorChar}mounted";
         
-        Log.PrintAsync<ContainerControlHelper>($"Waiting for rampartfs container filesystem to be ready at '{ControlPath}'", LogLevel.Debug);
+        Log.PrintAsync<ContainerControlHelper>($"Waiting for rampartfs container filesystem to be ready at '{MountPath}'", LogLevel.Debug);
         while (File.Exists(Flag) == false) {
             Thread.Sleep(100);
         }
