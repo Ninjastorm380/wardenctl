@@ -1,1 +1,0 @@
-/home/prydaran/Documents/Rider/wardencontrol/wardenctl/bin/Release/net9.0/linux-x64/publish/wardenctl
