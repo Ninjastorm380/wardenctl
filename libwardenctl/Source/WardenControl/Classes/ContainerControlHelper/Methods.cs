@@ -1,9 +1,10 @@
 using System.Runtime.InteropServices;
 using System.Text;
+using Lightning.Diagnostics.Logging;
 
 namespace WardenControl;
 
-public static class ContainerControlHelper {
+public class ContainerControlHelper {
     private const Int32 ReadOnly = 0;
 
     [DllImport("libc", EntryPoint = "setns", SetLastError = true)]
@@ -161,19 +162,23 @@ public static class ContainerControlHelper {
     
     public static Int32 Mount(String StoragePath, String LogPath, String ControlPath, String MountPath, UInt64 Capacity) {
         String MountsFile = "/proc/mounts";
-        
+        Log.PrintAsync<ContainerControlHelper>($"Mounting tmpfs control filesystem at '{ControlPath}'", LogLevel.Debug);
         ExternalProcessHelper.Silent("mount", $"-t tmpfs tmpfs -o size=50K,noswap {ControlPath}");
+        Log.PrintAsync<ContainerControlHelper>($"Waiting for tmpfs control filesystem to exist at '{ControlPath}'", LogLevel.Debug);
         while (File.ReadAllText(MountsFile).Trim().Contains(ControlPath) == false) {
             Thread.Sleep(100);
         }
         
+        Log.PrintAsync<ContainerControlHelper>($"Mounting rampartfs container filesystem at '{MountPath}' with initial capacity '{Capacity}'", LogLevel.Debug);
         ExternalProcessHelper.Silent("rampartfs", $"{StoragePath} {ControlPath} {LogPath} {MountPath} {Capacity}");
+        Log.PrintAsync<ContainerControlHelper>($"Waiting for rampartfs container filesystem to exist at '{ControlPath}'", LogLevel.Debug);
         while (File.ReadAllText(MountsFile).Trim().Contains(MountPath) == false) {
             Thread.Sleep(100);
         }
         
         String Flag = $"{ControlPath}{Path.DirectorySeparatorChar}mounted";
         
+        Log.PrintAsync<ContainerControlHelper>($"Waiting for rampartfs container filesystem to be ready at '{ControlPath}'", LogLevel.Debug);
         while (File.Exists(Flag) == false) {
             Thread.Sleep(100);
         }
