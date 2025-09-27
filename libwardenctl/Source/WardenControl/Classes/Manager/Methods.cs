@@ -8,11 +8,13 @@ public static partial class Manager {
         BaseContainerRootPath = String.Empty;
         BaseStatusRootPath = String.Empty;
 
-        Log.Level = LogLevel.Debug;
-        Log.AddLogTarget(new ConsoleLogTarget());
+
     }
 
     public static void Init(String ContainerRootPath, String StatusRootPath) {
+        Log.Level = LogLevel.Debug;
+        Log.AddLogTarget(new ConsoleLogTarget());
+        
         BaseContainerRootPath = Path.GetFullPath(ContainerRootPath, "/");
         BaseStatusRootPath = Path.GetFullPath(StatusRootPath, "/");
         
@@ -49,6 +51,8 @@ public static partial class Manager {
         BaseRunning = false;
         Parallel.ForEach(BaseContainers, DisposeMethod);
         CPU.Close();
+        
+        Log.Close();
     }
 
     private static void DisposeMethod(KeyValuePair<String, Container> Reference) {
