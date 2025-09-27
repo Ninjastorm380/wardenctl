@@ -24,7 +24,9 @@ public static class ExternalProcessHelper {
     }
     
     public static void Block(String Command, String Arguments) {
-        ProcessStartInfo StartInfo = new ProcessStartInfo(Command, Arguments);
+        ProcessStartInfo StartInfo = new ProcessStartInfo(Command, Arguments) {
+            WorkingDirectory = "/usr/bin"
+        };
         
         System.Diagnostics.Process? Process = System.Diagnostics.Process.Start(StartInfo);
         Process?.WaitForExit();
