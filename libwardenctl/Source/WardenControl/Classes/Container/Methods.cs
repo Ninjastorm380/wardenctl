@@ -1,6 +1,8 @@
 using System.Text;
 using IniParser.Model;
 using IniParser.Parser;
+using Lightning.Diagnostics;
+using Lightning.Diagnostics.Logging;
 
 namespace WardenControl;
 
@@ -243,11 +245,16 @@ public partial class Container : IDisposable {
     }
     
     public void InitializeAndInstall(String Packages) {
+        Log.PrintAsync<Container>($"Attempting to initialize and install packages for container '{BaseUID}'.");
         if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == false && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == false) {
+            Log.PrintAsync<Container>("Mounting container filesystem for package install.");
             ContainerControlHelper.Mount(BaseStoragePath, BaseLogPath, BaseControlPath, BaseMountPath, BaseAssignedStorageMaximum);
+            Log.PrintAsync<Container>("Installing packages into container.");
             ContainerControlHelper.Populate(BaseMountPath, Packages);
+            Log.PrintAsync<Container>("Unmounting container filesystem.");
             ContainerControlHelper.Unmount(BaseControlPath, BaseMountPath);
         }
+        Log.PrintAsync<Container>($"Initialize and install complete for container '{BaseUID}'.");
     }
     
     public void Shell(String Username) {
@@ -257,15 +264,22 @@ public partial class Container : IDisposable {
     }
     public Boolean Startup() {
         if (BaseEnabled) {
+            Log.PrintAsync<Container>($"Booting container '{BaseUID}'.");
             if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == false && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == false) {
+                Log.PrintAsync<Container>("Mounting container filesystem for boot.");
                 ContainerControlHelper.Mount(BaseStoragePath, BaseLogPath, BaseControlPath, BaseMountPath, BaseAssignedStorageMaximum);
+                Log.PrintAsync<Container>("Booting container to network target.");
                 ContainerControlHelper.Start(BaseUID, BaseHostname, BaseInterface, BaseMountPath);
                 ContainerControlHelper.WaitForOnline(BaseUID, BaseContainerPath);
+                Log.PrintAsync<Container>("Enabling externally controlled mvlan interface within container.");
                 ContainerControlHelper.EnableInterface(BaseUID, BaseInterface);
+                Log.PrintAsync<Container>("Applying container settings and configuration.");
                 Apply();
+                Log.PrintAsync<Container>("Resuming container boot to multi-user target.");
                 ContainerControlHelper.ContinueStart(BaseUID);
+                Log.PrintAsync<Container>("Saving runtime state to disk.");
                 Save();
-
+                Log.PrintAsync<Container>($"Container '{BaseUID}' has successfully boot.");
                 return true;
             }
         }

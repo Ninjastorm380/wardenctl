@@ -1,3 +1,5 @@
+using Lightning.Diagnostics.Logging;
+
 namespace WardenControl;
 
 public static partial class Manager {
@@ -5,6 +7,9 @@ public static partial class Manager {
         BaseContainers = new Dictionary<String, Container>();
         BaseContainerRootPath = String.Empty;
         BaseStatusRootPath = String.Empty;
+
+        Log.Level = LogLevel.Debug;
+        Log.AddLogTarget(new ConsoleLogTarget());
     }
 
     public static void Init(String ContainerRootPath, String StatusRootPath) {
