@@ -223,6 +223,7 @@
         public static Int32 Start(String UID, String Hostname, String Interface, String MountPath) {    
             Log.PrintAsync<ContainerControlHelper>($"beginning container boot for '{UID}'", LogLevel.Debug);
             ExternalProcessHelper.Fork("systemd-nspawn", $"-qbPD {MountPath} -M {UID} --hostname {Hostname} --network-macvlan={Interface} --setenv=SYSTEMD_JOURNAL_STORAGE=volatile --bind=/dev/null:/etc/systemd/system/systemd-journal-flush.service");
+            Log.PrintAsync<ContainerControlHelper>($"container now booting for '{UID}'", LogLevel.Debug);
             
             return 0;
         }
