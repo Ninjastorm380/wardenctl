@@ -1,8 +1,9 @@
+using Lightning.Diagnostics.Logging;
 using ProcessStartInfo = System.Diagnostics.ProcessStartInfo;
 
 namespace WardenControl;
 
-public static class ExternalProcessHelper {
+public class ExternalProcessHelper {
     public static void Run(String Command, String Arguments) {
         ProcessStartInfo StartInfo = new ProcessStartInfo(Command, Arguments) {
             RedirectStandardError = true,
@@ -15,6 +16,7 @@ public static class ExternalProcessHelper {
     }
     
     public static void Fork(String Command, String Arguments) {
+        Log.PrintAsync<ExternalProcessHelper>($"attempting to fork new executable process. Command: '{Command}', Args: {Arguments}", LogLevel.Debug);
         ProcessStartInfo StartInfo = new ProcessStartInfo(Command, Arguments) {
             UseShellExecute = true
         };
