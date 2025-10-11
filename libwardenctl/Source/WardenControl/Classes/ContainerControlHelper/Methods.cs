@@ -452,7 +452,7 @@
             return 0;
         }
         public static Int32 SetStorageMaximum(String ControlPath, UInt64 Value) {
-            File.WriteAllText($"{ControlPath}{Path.DirectorySeparatorChar}storagemaximum", Value.ToString());
+            // File.WriteAllText($"{ControlPath}{Path.DirectorySeparatorChar}storagemaximum", Value.ToString());
 
             return 0;
         }
@@ -469,9 +469,9 @@
             return (0, (0, Current));
         }
         public static (Int32, (UInt64, UInt64)) GetStorageUsage(String ControlPath) {
-            UInt64.TryParse(File.ReadAllText($"{ControlPath}{Path.DirectorySeparatorChar}storagecurrent").Trim(), out UInt64 Current);
+            //UInt64.TryParse(File.ReadAllText($"{ControlPath}{Path.DirectorySeparatorChar}storagecurrent").Trim(), out UInt64 Current);
             
-            return (0, (0, Current));
+            return (0, (0, 0));
         }
 
         private static String FriendlyReadAllText(String FilePath) {
