@@ -20,7 +20,7 @@ public static class ExternalProcessHelper {
         };
         
         System.Diagnostics.Process? Process = System.Diagnostics.Process.Start(StartInfo);
-        Process?.Dispose();
+        //Process?.Dispose();
     }
     
     public static void Block(String Command, String Arguments) {
