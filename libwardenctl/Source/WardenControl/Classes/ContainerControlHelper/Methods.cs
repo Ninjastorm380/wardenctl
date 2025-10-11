@@ -106,7 +106,7 @@
             return true;
         }
         public static Boolean Running(String UID, String ContainerPath) {
-            String MachinePath = $"/sys/fs/cgroup/machine.slice/machine-{UID}.scope";
+            String MachinePath = $"/sys/fs/cgroup/machine.slice/machine-{Escape(UID)}.scope";
             
             (String?, String?) Result = RunInNetworkNamespaceOnContainer(UID, "/usr/bin/systemctl", "is-system-running"); //ExternalProcessHelper.Check("machinectl", $"-q shell root@{UID} /usr/bin/systemctl is-system-running");
             // (String, String) Result = ExternalProcessHelper.Check("machinectl", $"-q shell root@{UID} /usr/bin/systemctl is-system-running");
@@ -120,7 +120,7 @@
         private static Boolean Online(String UID, String ContainerPath) {
             Log.PrintAsync<ContainerControlHelper>($"checking if container '{UID}' is online", LogLevel.Debug);
             
-            String MachinePath = $"/sys/fs/cgroup/machine.slice/machine-{UID}.scope";
+            String MachinePath = $"/sys/fs/cgroup/machine.slice/machine-{Escape(UID)}.scope";
             
             
             (String, String) Result = ExternalProcessHelper.Check("machinectl", $"list");
@@ -138,7 +138,7 @@
             return A & C;
         }
         private static Boolean NotRunning(String UID, String ContainerPath) {
-            String MachinePath = $"/sys/fs/cgroup/machine.slice/machine-{UID}.scope";
+            String MachinePath = $"/sys/fs/cgroup/machine.slice/machine-{Escape(UID)}.scope";
 
             //(String?, String?) Result = RunInNetworkNamespaceOnContainer(UID, "/usr/bin/systemctl", "is-system-running"); //ExternalProcessHelper.Check("machinectl", $"-q shell root@{UID} /usr/bin/systemctl is-system-running");
             (String, String) Result = ExternalProcessHelper.Check("machinectl", $"-q shell root@{UID} /usr/bin/systemctl is-system-running");
@@ -511,5 +511,19 @@
             UInt64 Result = (UInt64)Math.Ceiling(Speed * 0.10);
 
             return Result;
+        }
+        
+        private static String Escape(String Name) {
+            StringBuilder Builder = new StringBuilder();
+            foreach (Byte Byte in Encoding.UTF8.GetBytes(Name)) {
+                if ((Byte >= (Byte)'A' && Byte <= (Byte)'Z') || (Byte >= (Byte)'a' && Byte <= (Byte)'z') || (Byte >= (Byte)'0' && Byte <= (Byte)'9') || Byte == (Byte)'_' || Byte == (Byte)':') {
+                    Builder.Append((Char)Byte);
+                }
+                else {
+                    Builder.Append("\\x");
+                    Builder.Append(Byte.ToString("x2"));
+                }
+            }
+            return Builder.ToString();
         }
     }
