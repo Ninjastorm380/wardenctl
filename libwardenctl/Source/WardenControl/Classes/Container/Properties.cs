@@ -7,7 +7,7 @@ public partial class Container {
         }
         set {
             BaseAssignedMemoryMaximum = value;
-            if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+            if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
                 ContainerControlHelper.SetMemoryMaximum(BaseUID, value);
             }
             Save();
@@ -20,7 +20,7 @@ public partial class Container {
         }
         set {
             BaseAssignedStorageMaximum = value;
-            if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+            if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
                 ContainerControlHelper.SetStorageMaximum(BaseControlPath, value);
             }
             Save();
@@ -33,7 +33,7 @@ public partial class Container {
         }
         set {
             BaseAssignedNetworkMaximum = (BaseAssignedNetworkMaximum.Item1, value);
-            if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+            if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
                 ContainerControlHelper.SetNetworkSpeed(BaseControlPath, BaseInterface, BaseAssignedNetworkMaximum.Item1, value);
             }
             Save();
@@ -46,7 +46,7 @@ public partial class Container {
         }
         set {
             BaseAssignedNetworkMaximum = (value, BaseAssignedNetworkMaximum.Item2);
-            if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+            if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
                 ContainerControlHelper.SetNetworkSpeed(BaseControlPath, BaseInterface, value, BaseAssignedNetworkMaximum.Item2);
             }
             Save();

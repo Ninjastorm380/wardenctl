@@ -75,7 +75,7 @@ public partial class Container : IDisposable {
     }
     
     private void Apply() {
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
             foreach (String Address in BaseV6Addresses) {
                 ContainerControlHelper.BindRoutableV6Address(BaseUID, Address, BaseInterface);
             }
@@ -231,7 +231,7 @@ public partial class Container : IDisposable {
     }
 
     public void Remove() {
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == false && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == false) {
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == false) {
             if (Directory.Exists(BaseContainerPath) == true) {
                 Directory.Delete(BaseContainerPath, true);
             }
@@ -239,18 +239,14 @@ public partial class Container : IDisposable {
     }
     
     public (Boolean, Boolean, Boolean, Boolean) Status() {
-        return (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath), ContainerControlHelper.Running(BaseUID, BaseContainerPath), BaseEnabled, BaseAutoboot);
+        return (false, ContainerControlHelper.Running(BaseUID, BaseContainerPath), BaseEnabled, BaseAutoboot);
     }
     
     public void InitializeAndInstall(String Packages) {
         Log.PrintAsync<Container>($"Attempting to initialize and install packages for container '{BaseUID}'.");
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == false && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == false) {
-            Log.PrintAsync<Container>("Mounting container filesystem for package install.");
-            ContainerControlHelper.Mount(BaseStoragePath, BaseLogPath, BaseControlPath, BaseMountPath, BaseAssignedStorageMaximum);
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == false) {
             Log.PrintAsync<Container>("Installing packages into container.");
-            ContainerControlHelper.Populate(BaseMountPath, Packages);
-            Log.PrintAsync<Container>("Unmounting container filesystem.");
-            ContainerControlHelper.Unmount(BaseControlPath, BaseMountPath);
+            ContainerControlHelper.Populate(BaseStoragePath, Packages);
         }
         Log.PrintAsync<Container>($"Initialize and install complete for container '{BaseUID}'.");
     }
@@ -263,11 +259,10 @@ public partial class Container : IDisposable {
     public Boolean Startup() {
         if (BaseEnabled) {
             Log.PrintAsync<Container>($"Booting container '{BaseUID}'.");
-            if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == false && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == false) {
+            if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == false) {
                 Log.PrintAsync<Container>("Mounting container filesystem for boot.");
-                ContainerControlHelper.Mount(BaseStoragePath, BaseLogPath, BaseControlPath, BaseMountPath, BaseAssignedStorageMaximum);
                 Log.PrintAsync<Container>("Booting container to network target.");
-                ContainerControlHelper.Start(BaseUID, BaseHostname, BaseInterface, BaseMountPath);
+                ContainerControlHelper.Start(BaseUID, BaseHostname, BaseInterface, BaseStoragePath);
                 ContainerControlHelper.WaitForOnline(BaseUID, BaseContainerPath);
                 Log.PrintAsync<Container>("Enabling externally controlled mvlan interface within container.");
                 ContainerControlHelper.EnableInterface(BaseUID, BaseInterface);
@@ -285,13 +280,12 @@ public partial class Container : IDisposable {
         return false;
     }
     public void Shutdown() {
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
             (Int32, (UInt64, UInt64)) StorageStats = ContainerControlHelper.GetStorageUsage(BaseControlPath);
             BaseAssignedStorageCurrent = StorageStats.Item2.Item2;
             ContainerControlHelper.DisableInterface(BaseUID, BaseInterface);
             ContainerControlHelper.Stop(BaseUID);
             ContainerControlHelper.WaitForNotRunning(BaseUID, BaseContainerPath);
-            ContainerControlHelper.Unmount(BaseControlPath, BaseMountPath);
             
             CPU.Unassign(BaseAssignedPhysicalCPUs);
             BaseAssigned = false;
@@ -301,11 +295,11 @@ public partial class Container : IDisposable {
     }
     public void Restart() {
         if (BaseEnabled) {
-            if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+            if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
                 ContainerControlHelper.DisableInterface(BaseUID, BaseInterface);
                 ContainerControlHelper.Stop(BaseUID);
                 ContainerControlHelper.WaitForNotRunning(BaseUID, BaseContainerPath);
-                ContainerControlHelper.Start(BaseUID, BaseHostname, BaseInterface, BaseMountPath);
+                ContainerControlHelper.Start(BaseUID, BaseHostname, BaseInterface, BaseStoragePath);
                 ContainerControlHelper.WaitForOnline(BaseUID, BaseContainerPath);
                 ContainerControlHelper.EnableInterface(BaseUID, BaseInterface);
                 Apply();
@@ -327,7 +321,7 @@ public partial class Container : IDisposable {
     public void SetCPUs(Int32[] CPUs) {
         BaseAssignedLogicalCPUs = CPUs;
 
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
             Int32[] AssignedCores = CPU.Reassign(BaseAssignedPhysicalCPUs, BaseAssignedLogicalCPUs);
             BaseAssigned = true;
             BaseAssignedPhysicalCPUs = AssignedCores;
@@ -337,7 +331,7 @@ public partial class Container : IDisposable {
     }
     
     public void AssignV6Address(String Address, String Gateway) {
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
             foreach (String V6Address in BaseV6Addresses.ToArray()) {
                 ContainerControlHelper.RemoveRoutableV6Address(BaseUID, V6Address, BaseInterface);
             }
@@ -347,7 +341,7 @@ public partial class Container : IDisposable {
             BaseV6Addresses.Remove(V6Address);
         }
         
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
             ContainerControlHelper.BindRoutableV6Address(BaseUID, Address, BaseInterface);
             ContainerControlHelper.BindRoutableV6Gateway(BaseUID, Gateway, BaseInterface);
         }
@@ -358,7 +352,7 @@ public partial class Container : IDisposable {
     }
     
     public void AssignV4Address(String Address, String Gateway) {
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
             foreach (String V4Address in BaseV4Addresses.ToArray()) {
                 ContainerControlHelper.RemoveRoutableV4Address(BaseUID, V4Address, BaseInterface);
             }
@@ -368,7 +362,7 @@ public partial class Container : IDisposable {
             BaseV4Addresses.Remove(V4Address);
         }
         
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
             ContainerControlHelper.BindRoutableV4Address(BaseUID, Address, BaseInterface);
             ContainerControlHelper.BindRoutableV4Gateway(BaseUID, Gateway, BaseInterface);
         }
@@ -379,42 +373,42 @@ public partial class Container : IDisposable {
     }
     
     public void AddV6Address(String Address) {
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
             ContainerControlHelper.BindRoutableV6Address(BaseUID, Address, BaseInterface);
         }
         BaseV6Addresses.Add(Address);
         Save();
     }
     public void AddV4Address(String Address) {
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
             ContainerControlHelper.BindRoutableV4Address(BaseUID, Address, BaseInterface);
         }
         BaseV4Addresses.Add(Address);
         Save();
     }
     public void RemoveV6Address(String Address) {
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
             ContainerControlHelper.RemoveRoutableV6Address(BaseUID, Address, BaseInterface);
         }
         BaseV6Addresses.Remove(Address);
         Save();
     }
     public void RemoveV4Address(String Address) {
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
             ContainerControlHelper.RemoveRoutableV4Address(BaseUID, Address, BaseInterface);
         }
         BaseV4Addresses.Remove(Address);
         Save();
     }
     public void RemoveDefaultV6Address() {
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
             ContainerControlHelper.RemoveRoutableV6Address(BaseUID, DefaultV6Address, BaseInterface);
         }
         BaseV6Addresses.Remove(DefaultV6Address);
         Save();
     }
     public void RemoveDefaultV4Address() {
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
             ContainerControlHelper.RemoveRoutableV4Address(BaseUID, DefaultV4Address, BaseInterface);
         }
         BaseV4Addresses.Remove(DefaultV6Address);
@@ -425,7 +419,7 @@ public partial class Container : IDisposable {
         return BaseV6Addresses.Contains(Address);
     }
     public Boolean ContainsV4Address(String Address) {
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
             ContainerControlHelper.RemoveRoutableV4Address(BaseUID, Address, BaseV4Gateway, BaseInterface);
         }
         return BaseV4Addresses.Contains(Address);
@@ -456,14 +450,14 @@ public partial class Container : IDisposable {
     }
     
     public void SetV6Gateway(String Gateway) {
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
             ContainerControlHelper.BindRoutableV6Gateway(BaseUID, Gateway, BaseInterface);
         }
         BaseV6Gateway = Gateway;
         Save();
     }
     public void SetV4Gateway(String Gateway) {
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
             ContainerControlHelper.BindRoutableV4Gateway(BaseUID, Gateway, BaseInterface);
         }
         BaseV4Gateway = Gateway;
@@ -487,7 +481,7 @@ public partial class Container : IDisposable {
     }
 
     public void GetUsage(out Double NetworkInterfaceDownloadUsage, out Double NetworkInterfaceDownloadMaximum, out Double NetworkInterfaceUploadUsage, out Double NetworkInterfaceUploadMaximum, out Double StorageCapacityUsage, out Double StorageCapacityMaximum, out Double MemoryCapacityUsage, out Double MemoryCapacityMaximum, out Double[] CoreUsages) {
-        if (ContainerControlHelper.Mounted(BaseControlPath, BaseMountPath) == true && ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
+        if (ContainerControlHelper.Running(BaseUID, BaseContainerPath) == true) {
             (Int32, (UInt64, UInt64)) NetworkInterfaceResults = ContainerControlHelper.GetNetworkDownloadUpload(BaseUID, BaseInterface);
             (Int32, (UInt64, UInt64)) StorageUsageResults = ContainerControlHelper.GetStorageUsage(BaseControlPath);
             (Int32, (UInt64, UInt64)) MemoryUsageResults = ContainerControlHelper.GetMemoryUsage(BaseUID);
