@@ -7,8 +7,6 @@ using Lightning.Diagnostics.Logging;
 namespace WardenControl;
 
 public partial class Container : IDisposable {
-
-    
     public Container(String RootPath, String UID) {
         BaseContainerPath = $"{RootPath}{Path.DirectorySeparatorChar}{BaseUID}";
         BaseStoragePath = $"{RootPath}{Path.DirectorySeparatorChar}{UID}{Path.DirectorySeparatorChar}storage"; 
@@ -17,11 +15,11 @@ public partial class Container : IDisposable {
         BaseMountPath   = $"{RootPath}{Path.DirectorySeparatorChar}{UID}{Path.DirectorySeparatorChar}mount";
         BaseConfigPath  = $"{RootPath}{Path.DirectorySeparatorChar}{UID}{Path.DirectorySeparatorChar}container.conf";
         
-        BaseDevice = new NetworkDevice(0, 0);
-        BaseHostname  = "server";
+        BaseDevice      = new NetworkDevice(0, 0);
+        BaseHostname    = "server";
         BaseDisplayName = "Server";
         BaseDescription = "Server";
-        BaseUID       = UID;
+        BaseUID         = UID;
         
         BaseAssignedLogicalCPUs = [0, 1];
         BaseAssignedPhysicalCPUs = [];
