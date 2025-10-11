@@ -118,12 +118,22 @@
             return Directory.Exists(MachinePath) & (Result.Item1.ToLower() == "running" | Result.Item1.ToLower() == "degraded" |  Result.Item2.ToLower() == "failed to get shell pty: connection refused") & Result.Item2.ToLower() != $"failed to get shell pty: no machine '{UID.ToLower()}' known" & Result.Item2.ToLower() != $"failed to get shell pty: There is no system bus in container {UID.ToLower()}.";
         }
         private static Boolean Online(String UID, String ContainerPath) {
+            Log.PrintAsync<ContainerControlHelper>($"checking if container '{UID}' is online", LogLevel.Debug);
+            
             String MachinePath = $"/sys/fs/cgroup/machine.slice/machine-{UID}.scope";
+            
             
             (String, String) Result = ExternalProcessHelper.Check("machinectl", $"list");
 
             Boolean A = Directory.Exists(MachinePath);
             Boolean C = Result.Item1.Contains(UID);
+
+            if (Result.Item2 != String.Empty) {
+                Log.PrintAsync<ContainerControlHelper>($"container '{UID}' reports {{ Control Folder Exists: '{A}', Container Is Listed: '{C}', Error Report: '{Result.Item2}' }}", LogLevel.Critical);
+            }
+            else {
+                Log.PrintAsync<ContainerControlHelper>($"container '{UID}' reports {{ Control Folder Exists: '{A}', Container Is Listed: '{C}' }}", LogLevel.Debug);
+            }
             
             return A & C;
         }
@@ -144,10 +154,11 @@
             return 0;
         }
         public static Int32 WaitForOnline(String UID, String ContainerPath) {
+            Log.PrintAsync<ContainerControlHelper>($"waiting for container '{UID}' to be online", LogLevel.Debug);
             do {
                 Thread.Sleep(100);
             } while (Online(UID, ContainerPath) == false);
-            
+            Log.PrintAsync<ContainerControlHelper>($"container '{UID}' is now online", LogLevel.Debug);
             return 0;
         }
         public static Int32 WaitForNotRunning(String UID, String ContainerPath) {
