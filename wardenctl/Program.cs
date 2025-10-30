@@ -14,7 +14,8 @@ internal class Program {
         
         LinuxStandardLibrary.GetEffectiveUserID(out UInt32 UID); if (UID != 0) {
             String? ExecutablePath = Environment.ProcessPath;
-            if (ExecutablePath == null || File.Exists("/usr/bin/sudo") == false) {
+            (Int32 Result, String Output, String Error) = ExecutableLaunchHelper.Run("sudo", ["--version"]);
+            if (ExecutablePath == null || Result != 0) {
                 Console.WriteLine($"You must be superuser to run this program");
                 Environment.Exit(1);
                 return;
