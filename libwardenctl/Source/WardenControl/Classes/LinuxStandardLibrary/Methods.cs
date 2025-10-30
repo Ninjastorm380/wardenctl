@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Runtime.InteropServices;
 
 namespace WardenControl;
@@ -37,40 +36,88 @@ public static class LinuxStandardLibrary {
         TemporaryFile                 = 0x04080000,
     }
     
+    [StructLayout(LayoutKind.Explicit, Size = 144)] public struct Stat {
+        [FieldOffset(000)] public UInt64 Device;
+        [FieldOffset(008)] public UInt64 INode;
+        [FieldOffset(016)] public UInt64 st_nlink;
+        [FieldOffset(024)] public UInt32 st_mode;
+        [FieldOffset(028)] public UInt32 st_uid;
+        [FieldOffset(032)] public UInt32 st_gid;
+        [FieldOffset(036)] public UInt64 st_rdev;
+        [FieldOffset(052)] public Int64 st_size;
+        [FieldOffset(060)] public Int32 st_blksize;
+        [FieldOffset(072)] public Int64 st_blocks;
+        [FieldOffset(080)] public Int64 st_atime;
+        [FieldOffset(088)] public Int64 st_atimensec;
+        [FieldOffset(096)] public Int64 st_mtime;
+        [FieldOffset(104)] public Int64 st_mtimensec;
+        [FieldOffset(112)] public Int64 st_ctime;
+        [FieldOffset(120)] public Int64 st_ctimensec;
+    }
+    
+    [DllImport("libc", EntryPoint = "geteuid", SetLastError = true)]
+    private static extern UInt32 InternalGetEUID();
+    
     [DllImport("libc", EntryPoint = "setns", SetLastError = true)]
     private static extern Int32 InternalSetNamespace(Int32 FileDescriptor, Int32 NamespaceTypeFlags);
 
+    [DllImport("libc", EntryPoint = "unshare", SetLastError = true)]
+    private static extern Int32 InternalUnshareNamespace(Int32 NamespaceTypeFlags);
+    
     [DllImport("libc", EntryPoint = "close", SetLastError = true)]
     private static extern Int32 InternalCloseFileDescriptor(Int32 FileDescriptor);
 
     [DllImport("libc", EntryPoint = "open", SetLastError = true)]
     private static extern Int32 InternalOpenFileDescriptor(String FilePath, Int32 FileFlags);
-
-    public static Int32 SetNamespace(in Int32 FileDescriptor, in NamespaceFlags NamespaceFlags) {
-        if (InternalSetNamespace(FileDescriptor, (Int32)NamespaceFlags) != -1) {
+    
+    [DllImport("libc", EntryPoint = "fstat", SetLastError = true)]
+    private static extern Int32 InternalDescriptorStat(Int32 Descriptor, out Stat Stats);
+    
+    public static Int32 DescriptorStat(Int32 Descriptor, out Stat Stats) {
+        if (InternalDescriptorStat(Descriptor, out Stats) != -1) {
             return 0;
         }
 
         return Marshal.GetLastWin32Error();
     }
     
-    public static Int32 CloseFileDescriptor(in Int32 FileDescriptor) {
-        if (InternalCloseFileDescriptor(FileDescriptor) != -1) {
+    public static void GetEffectiveUserID(out UInt32 UserID) {
+        UserID = InternalGetEUID();
+    }
+    
+    public static Int32 SetNamespace(in Int32 Descriptor, in NamespaceFlags NamespaceFlags) {
+        if (InternalSetNamespace(Descriptor, (Int32)NamespaceFlags) != -1) {
             return 0;
         }
 
         return Marshal.GetLastWin32Error();
     }
     
-    public static Int32 OpenFileDescriptor(in String AbsoluteFilePath, in FileFlags OpenFlags, out Int32 FileDescriptor) {
-        Int32 Descriptor = InternalOpenFileDescriptor(AbsoluteFilePath, (Int32)OpenFlags);
+    public static Int32 UnshareNamespace(in NamespaceFlags NamespaceFlags) {
+        if (InternalUnshareNamespace((Int32)NamespaceFlags) != -1) {
+            return 0;
+        }
+
+        return Marshal.GetLastWin32Error();
+    }
+    
+    public static Int32 CloseDescriptor(in Int32 Descriptor) {
+        if (InternalCloseFileDescriptor(Descriptor) != -1) {
+            return 0;
+        }
+
+        return Marshal.GetLastWin32Error();
+    }
+    
+    public static Int32 OpenDescriptor(in String AbsoluteFilePath, in FileFlags OpenFlags, out Int32 Descriptor) {
+        Int32 InternalDescriptor = InternalOpenFileDescriptor(AbsoluteFilePath, (Int32)OpenFlags);
         
-        if (Descriptor != -1) {
-            FileDescriptor = Descriptor;
+        if (InternalDescriptor != -1) {
+            Descriptor = InternalDescriptor;
             return 0;
         }
 
-        FileDescriptor = -1;
+        Descriptor = -1;
         return Marshal.GetLastWin32Error();
     }
 }

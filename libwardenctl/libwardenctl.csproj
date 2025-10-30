@@ -27,4 +27,10 @@
       <PackageReference Include="ini-parser-new" Version="2.6.2" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Source\WardenControl\Containers\Classes\Configuration\" />
+      <Folder Include="Source\WardenControl\Containers\Classes\Container\" />
+      <Folder Include="Source\WardenControl\Containers\Classes\Metrics\" />
+    </ItemGroup>
+
 </Project>

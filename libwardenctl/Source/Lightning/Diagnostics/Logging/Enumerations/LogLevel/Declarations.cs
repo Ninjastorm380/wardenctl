@@ -5,5 +5,6 @@ public enum LogLevel {
     Critical = 1,
     Warning  = 2,
     Info     = 3,
-    Debug    = 4
+    Debug    = 4,
+    Default  = Warning
 }

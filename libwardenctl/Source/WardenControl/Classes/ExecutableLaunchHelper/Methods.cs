@@ -9,6 +9,18 @@ public static class ExecutableLaunchHelper {
         }; Process.Start(StartInfo)?.Dispose();
     }
     
+    public static Int32 Fork(String ExecutableFilePath, String[] ExecutableArguments) {
+        ProcessStartInfo StartInfo = new ProcessStartInfo(ExecutableFilePath, ExecutableArguments) {
+            UseShellExecute = true
+        }; Process? Process = Process.Start(StartInfo);
+        
+        Process?.WaitForExit();
+        Int32 Code = Process?.ExitCode ?? -1;
+        Process?.Dispose();
+
+        return Code;
+    }
+    
     public static (Int32, String, String) Run(String ExecutableFilePath, String[] ExecutableArguments) {
         ProcessStartInfo StartInfo = new ProcessStartInfo(ExecutableFilePath, ExecutableArguments) {
             RedirectStandardOutput = true,

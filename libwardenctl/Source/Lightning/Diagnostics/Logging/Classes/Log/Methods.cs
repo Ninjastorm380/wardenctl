@@ -6,6 +6,9 @@ using System;
 using System.Runtime.CompilerServices;
 
 public static partial class Log {
+    static Log() {
+        Level = LogLevel.Default;
+    }
     [MethodImpl(MethodImplOptions.NoInlining)] public static void PrintAsync<T>(String Message, LogLevel LogLevel = LogLevel.Info, [CallerMemberName] String MethodName = "", [CallerFilePath] String FilePath = "", [CallerLineNumber] Int32 LineNumber = 0) {
         switch (Level) {
             case LogLevel.Critical:
@@ -52,28 +55,21 @@ public static partial class Log {
             default: return;
         }
         
-        Task.Run(InternalPrintAsync);
-        
-        return;
-        
-        void InternalPrintAsync () {
+        String LevelString = LogLevel switch { 
+            LogLevel.Critical => Critical,
+            LogLevel.Warning  => Warning,
+            LogLevel.Info     => Info,
+            LogLevel.Debug    => Debug,
+            _                 => String.Empty 
+        };
             
-            String LevelString = LogLevel switch { 
-                LogLevel.Critical => Critical,
-                LogLevel.Warning  => Warning,
-                LogLevel.Info     => Info,
-                LogLevel.Debug    => Debug,
-                _                 => String.Empty 
-            };
-            
-            if (OutputTargets.Count > 0) {
-                DateTime Now = DateTime.UtcNow;
+        if (OutputTargets.Count > 0) {
+            DateTime Now = DateTime.UtcNow;
 
-                Type CallingType = typeof(T);
-                String Logged = $"{LevelString}On '{Now.ToShortDateString()}{DateTimeSplit}{Now.ToLongTimeString()}' At '{CallingType.FullName}.{MethodName}{LineSplit}{LineNumber:000000}'{EndCap}{Message}";
-                foreach (ILogTarget Target in OutputTargets) {
-                    Target.PrintAsync(LogLevel, Logged);
-                }
+            Type CallingType = typeof(T);
+            String Logged = $"{LevelString}On '{Now.ToShortDateString()}{DateTimeSplit}{Now.ToLongTimeString()}' At '{CallingType.FullName}.{MethodName}{LineSplit}{LineNumber:000000}'{EndCap}{Message}";
+            foreach (ILogTarget Target in OutputTargets) {
+                Target.PrintAsync(LogLevel, Logged);
             }
         }
     }
@@ -108,13 +104,15 @@ public static partial class Log {
         switch (Value.ToLower()) {
             case "debug": return LogLevel.Debug;
             case "info": return LogLevel.Info;
+            case "information": return LogLevel.Info;
             case "warn": return LogLevel.Warning;
             case "warning": return LogLevel.Warning;
             case "crit": return LogLevel.Critical;
             case "critical": return LogLevel.Critical;
             case "quiet": return LogLevel.Silent;
             case "silent": return LogLevel.Silent;
-            default: return LogLevel.Warning;
+            case "default": return LogLevel.Default;
+            default: return LogLevel.Default;
         }
     }
 }

@@ -50,8 +50,8 @@ public partial class FileLogTarget : ILogTarget {
         while (Running == true) {
             while (PrintQueue.TryDequeue(out (LogLevel, String) Args)) {
                 OutputWriter.WriteLine(Args.Item2);
-                OutputWriter.Flush();
-            }
+            } OutputWriter.Flush();
+            
             Thread.Sleep(100);
         }
     }
@@ -65,6 +65,10 @@ public partial class FileLogTarget : ILogTarget {
 
     public void Close () {
         Running = false;
+        
+        while (PrintQueue.TryDequeue(out (LogLevel, String) Args)) {
+            OutputWriter.WriteLine(Args.Item2);
+        } OutputWriter.Flush();
         
         OutputWriter.Close();
         OutputWriter.Dispose();
