@@ -1,5 +1,5 @@
 namespace WardenControl;
 
-public partial struct Identifier {
+public readonly partial struct Identifier : IEquatable<Identifier>, IParsable<Identifier> {
     
 }
