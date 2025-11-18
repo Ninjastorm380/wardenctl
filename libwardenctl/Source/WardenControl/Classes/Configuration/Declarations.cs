@@ -20,6 +20,8 @@ public partial class Configuration {
     private const Boolean BaseDefaultEnabled = false;
     private const Boolean BaseDefaultLocked = true;
 
+    private Identifier BaseIdentifier;
+    
     private IPAddress[] BaseIPv4Addresses;
     private IPAddress   BaseIPv4Gateway;
     private IPAddress[] BaseIPv6Addresses;

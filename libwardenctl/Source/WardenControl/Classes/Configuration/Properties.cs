@@ -137,4 +137,13 @@ public partial class Configuration {
             BaseIPv6Gateway = value;
         }
     }
+    
+    public Identifier Identifier {
+        get {
+            return BaseIdentifier;
+        }
+        set {
+            BaseIdentifier = value;
+        }
+    }
 }
