@@ -1,390 +1,189 @@
-﻿using System.Runtime.InteropServices;
-using System.Text;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Net;
+using System.Reflection;
+using Lightning.Diagnostics.Logging;
 using WardenControl;
 
 namespace wardenctl;
 
-internal static class Program {
-    [DllImport("libc", EntryPoint = "geteuid")]
-    private static extern UInt32 GetEUID();
-     
+internal class Program {
+    private static Boolean ControlC;
+    
+    [UnconditionalSuppressMessage("Trimming", "IL2059", Justification = "we enumerate all remaining types to preload static constructors with this call")]
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "we enumerate all remaining types to preload static constructors with this call")]
+    private static void FrontLoadAssemblies() {
+        Console.Write(' '); Console.SetCursorPosition(0, Console.GetCursorPosition().Top);
+        foreach (Assembly Assembly in AppDomain.CurrentDomain.GetAssemblies()) {
+            foreach (Type Type in Assembly.GetTypes()) {
+                try {
+                    System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(Type.TypeHandle);
+                }
+                catch {
+                    
+                }
+            }
+        }
+    }
+    
     static void Main(String[] Args) {
-        
-        if (GetEUID() != 0) {
-            Console.WriteLine("You must be superuser to run this program.");
+        LinuxStandardLibrary.GetEffectiveUserID(out UInt32 UID); if (UID != 0) {
+            String? ExecutablePath = Environment.ProcessPath;
+            (Int32 Result, String _, String _) = ExecutableLaunchHelper.Run("sudo", ["--version"]);
+            if (ExecutablePath == null || Result != 0) {
+                Console.WriteLine($"You must be superuser to run this program");
+                Environment.Exit(1);
+                return;
+            }
 
-            return;
+            String[] ElevateArgs = new String[Args.Length + 1];
+            ElevateArgs[0] = ExecutablePath;
+            Array.Copy(Args, 0, ElevateArgs, 1, Args.Length);
+            Log.Close();
+            Environment.Exit(ExecutableLaunchHelper.Fork("sudo", ElevateArgs));
         }
-
-        String WardenRoot = Path.GetFullPath("/srv/warden");
-        String WardenContainerRoot = Path.GetFullPath("/srv/warden/containers");
-        String WardenStatusRoot = Path.GetFullPath("/srv/warden/status");
-
-        if (Directory.Exists(WardenRoot) == false) {
-            Directory.CreateDirectory(WardenRoot);
+        else {
+            FrontLoadAssemblies();
+            ElevatedMain(Args);
         }
-
-        Manager.Init(WardenContainerRoot, WardenStatusRoot);
-
-        if (Args.Length == 0) {
-            Manager.Close();
-            
-            return;
-        }
-
-        switch (Args[0].ToLower()) {
-            case "create":
-                if (Args.Length > 3) {
-                    String Packages = Args[2];
-                    for (int Index = 3; Index < Args.Length; Index++) {
-                        Packages += $" {Args[Index]}";
-                    }
-                    
-                    Manager.Create(Args[1], Packages);
-
-                    break;
-                }
-                if (Args.Length > 2) {
-                    
-                    Manager.Create(Args[1], Args[2]);
-
-                    break;
-                }
-                if (Args.Length > 1) {
-                    Manager.Create(Args[1], "sudo nano btop openssh");
-                }
-
-                break;
-            case "remove":
-                if (Args.Length > 1) {
-                    Manager.Remove(Args[1]);
-                }
-
-                break;
-            case "list":
-                foreach (String UID in Manager.List()) {
-                    (Boolean, Boolean, Boolean, Boolean) EntryStatus = Manager.Status(UID);
-                    String DisplayName = Manager.GetDisplayName(UID);
-                    String Description = Manager.GetDescription(UID);
-
-                    String EntryPrintable = $"{UID}:{Environment.NewLine} Flags:{Environment.NewLine}  ";
-
-                    if (EntryStatus.Item3) {
-                        EntryPrintable += "Enabled";
-                    }
-                    else {
-                        EntryPrintable += "Disabled";
-                    }
-
-                    if (EntryStatus.Item4) {
-                        EntryPrintable += ", Boot";
-                    }
-
-                    if (EntryStatus.Item2) {
-                        EntryPrintable += ", Running";
-                    }
-
-                    BaseBuilder.Append(" Display Name:").AppendLine().Append("  ").Append(DisplayName).AppendLine();
-                    BaseBuilder.Append(" Description:").AppendLine().Append("  ").Append(Description).AppendLine();
-                    
-                    Console.WriteLine($"{EntryPrintable}{Environment.NewLine} Display Name:{Environment.NewLine}  {DisplayName}{Environment.NewLine} Description:{Environment.NewLine}  {Description}{Environment.NewLine}");
-                }
-                break;
-            case "status":
-                if (Args.Length > 1) {
-                    PrintStatus(Args[1]);
-                    PrintStatus(Args[1]);
-                }
-
-                break;
-
-            case "monitor":
-                if (Args.Length > 1) {
-                    while (true) {
-                        Thread.Sleep(100);
-                        Console.Clear();
-                        PrintStatus(Args[1]);
-                    }
-                }
-
-                break;
-            case "shell":
-                if (Args.Length > 2) {
-                    Manager.Shell(Args[1], Args[2]);
-                }
-
-                break;
-            case "network-interface":
-                if (Args.Length > 2) {
-                    Manager.SetNetworkInterface(Args[1], Args[2]);
-
-                    break;
-                }
-
-                if (Args.Length > 1) {
-                    Console.WriteLine($"Selected Network Interface: '{Manager.GetNetworkInterface(Args[1])}'");
-                }
-
-                break;
-            case "upload-speed":
-                if (Args.Length > 2) {
-                    Manager.SetNetworkInterfaceUploadSpeed(Args[1], UInt64.Parse(Args[2]));
-
-                    break;
-                }
-
-                if (Args.Length > 1) {
-                    Console.WriteLine($"Maximum Network Interface Upload Speed: '{Manager.GetNetworkInterfaceUploadSpeed(Args[1])}'");
-                }
-
-                break;
-            case "download-speed":
-                if (Args.Length > 2) {
-                    Manager.SetNetworkInterfaceDownloadSpeed(Args[1], UInt64.Parse(Args[2]));
-
-                    break;
-                }
-
-                if (Args.Length > 1) {
-                    Console.WriteLine($"Maximum Network Interface Download Speed: '{Manager.GetNetworkInterfaceDownloadSpeed(Args[1])}'");
-                }
-
-                break;
-            case "cores":
-                if (Args.Length > 2) {
-                    Manager.SetCores(Args[1], Parsing.GetInt32Array(Args[2]));
-
-                    break;
-                }
-
-                if (Args.Length > 1) {
-                    Console.WriteLine($"Logical CPU Cores: '{Parsing.GetString(Manager.GetCores(Args[1]))}'");
-                }
-
-                break;
-            case "boot":
-                if (Args.Length > 2) {
-                    Manager.SetAutoboot(Args[1], Boolean.Parse(Args[2]));
-
-                    break;
-                }
-
-                if (Args.Length > 1) {
-                    Console.WriteLine($"Boot On Physical Server Startup: '{Manager.GetAutoboot(Args[1])}'");
-                }
-
-                break;
-            case "enabled":
-                if (Args.Length > 2) {
-                    Manager.SetEnabled(Args[1], Boolean.Parse(Args[2]));
-
-                    break;
-                }
-
-                if (Args.Length > 1) {
-                    Console.WriteLine($"Enabled: '{Manager.GetEnabled(Args[1])}'");
-                }
-
-                break;
-            case "memory-capacity":
-                if (Args.Length > 2) {
-                    Manager.SetMemoryCapacity(Args[1], UInt64.Parse(Args[2]));
-
-                    break;
-                }
-
-                if (Args.Length > 1) {
-                    Console.WriteLine($"Logical Memory Capacity: '{Manager.GetMemoryCapacity(Args[1])}'");
-                }
-
-                break;
-            case "disk-capacity":
-                if (Args.Length > 2) {
-                    Manager.SetStorageCapacity(Args[1], UInt64.Parse(Args[2]));
-
-                    break;
-                }
-
-                if (Args.Length > 1) {
-                    Console.WriteLine($"Logical Disk Capacity: '{Manager.GetStorageCapacity(Args[1])}'");
-                }
-
-                break;
-            case "display-name":
-                if (Args.Length > 2) {
-                    Manager.SetDisplayName(Args[1], Args[2]);
-
-                    break;
-                }
-
-                if (Args.Length > 1) {
-                    Console.WriteLine($"Display Name: '{Manager.GetDisplayName(Args[1])}'");
-                }
-
-                break;
-            case "description":
-                if (Args.Length > 2) {
-                    Manager.SetDescription(Args[1], Args[2]);
-
-                    break;
-                }
-
-                if (Args.Length > 1) {
-                    Console.WriteLine($"Description: '{Manager.GetDescription(Args[1])}'");
-                }
-
-                break;
-            case "ipv4":
-                if (Args.Length > 3) {
-                    Manager.AssignV4Address(Args[1], Args[2], Args[3]);
-
-                    break;
-                }
-
-                if (Args.Length > 2) {
-                    if (Args[2].ToLower() == "reset") {
-                        Manager.ResetV4Address(Args[1]);
-                    }
-
-                    break;
-                }
-
-                if (Args.Length > 1) {
-                    Manager.GetV4Address(Args[1], out String Address, out String Gateway);
-                    Console.WriteLine($"IPv4 Information: {{ Address: '{Address}', Gateway: '{Gateway}' }}");
-                }
-
-                break;
-            case "ipv6":
-                if (Args.Length > 3) {
-                    Manager.AssignV6Address(Args[1], Args[2], Args[3]);
-
-                    break;
-                }
-
-                if (Args.Length > 2) {
-                    if (Args[2].ToLower() == "reset") {
-                        Manager.ResetV6Address(Args[1]);
-                    }
-
-                    break;
-                }
-
-                if (Args.Length > 1) {
-                    Manager.GetV6Address(Args[1], out String Address, out String Gateway);
-                    Console.WriteLine($"IPv6 Information: {{ Address: '{Address}', Gateway: '{Gateway}' }}");
-                }
-
-                break;
-            case "startup":
-                if (Args.Length > 2) {
-                    Manager.Boot(Args[1]);
-                    Manager.Shell(Args[1], Args[2]);
-
-                    break;
-                }
-
-                if (Args.Length > 1) {
-                    Manager.Boot(Args[1]);
-
-                    break;
-                }
-
-                if (Args.Length > 0) {
-                    Manager.Autoboot();
-                }
-
-                break;
-            case "shutdown":
-                if (Args.Length > 1) {
-                    Manager.Shutdown(Args[1]);
-
-                    break;
-                }
-                
-                if (Args.Length > 0) {
-                    Manager.ShutdownAll();
-                }
-
-                break;
-            case "restart":
-                if (Args.Length > 2) {
-                    Manager.Restart(Args[1]);
-                    Manager.Shell(Args[1], Args[2]);
-                    break;
-                }
-                if (Args.Length > 1) {
-                    Manager.Restart(Args[1]);
-                }
-
-                break;
-            case "init":
-                break;
-        }
-
-        Manager.Close();
     }
 
-    private static readonly StringBuilder BaseBuilder = new StringBuilder(200000);
-    private static String BaseNextPrint = String.Empty;
-    
-    private static void PrintStatus(String UID) {
-        Console.Write(BaseNextPrint);
+    static void ElevatedMain(String[] Args) {
+        ControlC = false;
+        Console.CancelKeyPress += ConsoleOnCancelKeyPress;
+        Log.AddLogTarget(new ConsoleLogTarget());
         
-        (Boolean, Boolean, Boolean, Boolean) Status = Manager.Status(UID);
-        Manager.GetUsage(UID, out Double DownloadUsage, out Double DownloadMaximum, out Double UploadUsage, out Double UploadMaximum, out Double StorageUsage, out Double StorageMaximum, out Double MemoryUsage, out Double MemoryMaximum, out Double[] CoreUsages);
-        String DisplayName = Manager.GetDisplayName(UID);
-        String Description = Manager.GetDescription(UID);
-        Int32[] Cores = Manager.GetCores(UID);
+        String StorageRoot = Path.GetFullPath(Args[0]);
+        String ConfigRoot  = Path.GetFullPath(Args[1]);
+        IPAddress Address = IPAddress.Parse(Args[2]);
+        UInt16 Port = UInt16.Parse(Args[3]);
         
+        if (Args.Length > 4) {
+            Log.Level = Log.ToLogLevel(Args[4]);
+        }
         
-        Double DownloadCurrent = DownloadMaximum * DownloadUsage;
-        Double UploadCurrent = UploadMaximum * UploadUsage;
-        Double StorageCurrent = StorageMaximum * StorageUsage;
-        Double MemoryCurrent = MemoryMaximum * MemoryUsage;
-        
-        BaseBuilder.Clear();
-            
-        BaseBuilder.Append("Server '").Append(UID).Append("':").AppendLine().Append(" Flags:").AppendLine().Append("  ").Append(Status.Item3 ? "Enabled" : "Disabled");
-
-        if (Status.Item4) {
-            BaseBuilder.Append(", Boot");
+        Boolean PathsOK = true;
+        if (Directory.Exists(StorageRoot) == false) {
+            PathsOK = false;
+            Log.PrintAsync<Program>($"Missing remote storage directory root: '{StorageRoot}'", LogLevel.Critical);
+        }
+        if (Directory.Exists(ConfigRoot) == false) {
+            PathsOK = false;
+            Log.PrintAsync<Program>($"Missing remote config directory root: '{ConfigRoot}'", LogLevel.Critical);
         }
 
-        if (Status.Item2) {
-            BaseBuilder.Append(", Running");
+        if (PathsOK == false) {
+            Log.Close();
+            Environment.Exit(2);
         }
 
-        BaseBuilder.AppendLine();
+        Boolean AccessOK = true;
+        if (LinuxStandardLibrary.OpenDescriptor(StorageRoot, LinuxStandardLibrary.FileFlags.Directory, out Int32 StorageRootDescriptor) != 0) {
+            Log.PrintAsync<Program>($"Could not access remote storage directory root: '{StorageRoot}'", LogLevel.Critical);
+            AccessOK = false;
+        }
+        if (LinuxStandardLibrary.OpenDescriptor(ConfigRoot, LinuxStandardLibrary.FileFlags.Directory, out Int32 ConfigRootDescriptor) != 0) {
+            Log.PrintAsync<Program>($"Could not access remote config directory root: '{ConfigRoot}'", LogLevel.Critical);
+            AccessOK = false;
+        }
 
-        BaseBuilder.Append(" Display Name:").AppendLine().Append("  ").Append(DisplayName).AppendLine();
-        BaseBuilder.Append(" Description:").AppendLine().Append("  ").Append(Description).AppendLine();
-        
-        BaseBuilder.Append(" Download Speed:").AppendLine().Append("  ").Append(DownloadCurrent.ToString("000000000000000000")).Append("B / ").Append(DownloadMaximum.ToString("000000000000000000")).Append("B (").Append(DownloadUsage.ToString("000%")).Append(')').AppendLine();
-        BaseBuilder.Append(" Upload Speed:").AppendLine().Append("  ").Append(UploadCurrent.ToString("000000000000000000")).Append("B / ").Append(UploadMaximum.ToString("000000000000000000")).Append("B (").Append(UploadUsage.ToString("000%")).Append(')').AppendLine();
-        BaseBuilder.Append(" Storage Capacity:").AppendLine().Append("  ").Append(StorageCurrent.ToString("000000000000000000")).Append("B / ").Append(StorageMaximum.ToString("000000000000000000")).Append("B (").Append(StorageUsage.ToString("000%")).Append(')').AppendLine();
-        BaseBuilder.Append(" Memory Capacity:").AppendLine().Append("  ").Append(MemoryCurrent.ToString("000000000000000000")).Append("B / ").Append(MemoryMaximum.ToString("000000000000000000")).Append("B (").Append(MemoryUsage.ToString("000%")).Append(')').AppendLine();
-        
-        if (CoreUsages.Length > 0) {
-            BaseBuilder.AppendLine(" CPU Usage:").Append("  ").Append(CoreUsages[0].ToString("000.0%"));
-
-            for (int Index = 1; Index < CoreUsages.Length; Index++) {
-                BaseBuilder.Append(", ").Append(CoreUsages[Index].ToString("000.0%"));
+        if (AccessOK == false) {
+            if (StorageRootDescriptor != -1) {
+                LinuxStandardLibrary.CloseDescriptor(StorageRootDescriptor);
             }
-
-            BaseBuilder.AppendLine();
-        }
-        
-        if (Cores.Length > 0) {
-            BaseBuilder.AppendLine(" CPU Cores:").Append("  ").Append(Cores[0].ToString("000000"));
-
-            for (int Index = 1; Index < Cores.Length; Index++) {
-                BaseBuilder.Append(", ").Append(Cores[Index].ToString("000000"));
+            if (ConfigRootDescriptor != -1) {
+                LinuxStandardLibrary.CloseDescriptor(ConfigRootDescriptor);
             }
-
-            BaseBuilder.AppendLine();
+            Log.Close();
+            Environment.Exit(13);
         }
         
-        BaseNextPrint = BaseBuilder.ToString();
+        if (LinuxStandardLibrary.DescriptorStat(StorageRootDescriptor, out LinuxStandardLibrary.Stat StorageRootStat) != 0) {
+            Log.PrintAsync<Program>($"Could not stat remote storage directory root: '{StorageRoot}'", LogLevel.Critical);
+            AccessOK = false;
+        }
+        if (LinuxStandardLibrary.DescriptorStat(ConfigRootDescriptor, out LinuxStandardLibrary.Stat ConfigRootStat) != 0) {
+            Log.PrintAsync<Program>($"Could not stat remote config directory root: '{ConfigRoot}'", LogLevel.Critical);
+            AccessOK = false;
+        }
+        
+        if (AccessOK == false) {
+            if (StorageRootDescriptor != -1) {
+                LinuxStandardLibrary.CloseDescriptor(StorageRootDescriptor);
+            }
+            if (ConfigRootDescriptor != -1) {
+                LinuxStandardLibrary.CloseDescriptor(ConfigRootDescriptor);
+            }
+            Log.Close();
+            Environment.Exit(13);
+        }
+        
+        Boolean PermsOK = true;
+        if (StorageRootStat.st_uid != 0) {
+            Log.PrintAsync<Program>($"Root does not own: '{StorageRoot}'", LogLevel.Critical);
+            PermsOK = false;
+        }
+        if (ConfigRootStat.st_uid != 0) {
+            Log.PrintAsync<Program>($"Root does not own: '{ConfigRoot}'", LogLevel.Critical);
+            PermsOK = false;
+        }
+        
+        if (PermsOK == false) {
+            if (StorageRootDescriptor != -1) {
+                LinuxStandardLibrary.CloseDescriptor(StorageRootDescriptor);
+            }
+            if (ConfigRootDescriptor != -1) {
+                LinuxStandardLibrary.CloseDescriptor(ConfigRootDescriptor);
+            }
+            Log.Close();
+            Environment.Exit(1);
+        }
+        
+        LinuxStandardLibrary.CloseDescriptor(StorageRootDescriptor);
+        LinuxStandardLibrary.CloseDescriptor(ConfigRootDescriptor);
+        
+        Boolean ExpectedOK = true;
+        if (File.Exists($"{StorageRoot}{Path.DirectorySeparatorChar}.warden.tag") == false) {
+            Log.PrintAsync<Program>($"Missing warden tag file: '{StorageRoot}{Path.DirectorySeparatorChar}.warden.tag'", LogLevel.Critical);
+            ExpectedOK = false;
+        }
+        if (File.Exists($"{ConfigRoot}{Path.DirectorySeparatorChar}.warden.tag") == false) {
+            Log.PrintAsync<Program>($"Missing warden tag file: '{ConfigRoot}{Path.DirectorySeparatorChar}.warden.tag'", LogLevel.Critical);
+            ExpectedOK = false;
+        }
+        
+        if (ExpectedOK == false) {
+            Log.Close();
+            Environment.Exit(22);
+        }
+
+        if (ControlC == true) {
+            Log.Close();
+            Environment.Exit(0);
+        }
+        
+        // TODO: Launch networked client.
+        // WardenControl.Connect(Address, Port);
+        // while (WardenControl.Connected == false & ControlC == false) {
+        //     Thread.Sleep(1000);
+        //     WardenControl.Connect(Address, Port);
+        // }
+        // 
+        // while (WardenControl.Connected == true & ControlC == false) {
+        //     Thread.Sleep(1000);
+        // }
+        // 
+        // if(ControlC == true & WardenControl.Connected == true) {
+        //     WardenControl.Disconnect();
+        // }
+        //
+        // WardenControl.Shutdown();
+        
+        Log.Close();
+        Environment.Exit(0);
+    }
+
+    private static void ConsoleOnCancelKeyPress(Object? Sender, ConsoleCancelEventArgs Args) {
+        ControlC = true;
+        Args.Cancel = true;
     }
 }
